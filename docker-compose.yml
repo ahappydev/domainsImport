@@ -1,0 +1,68 @@
+version: '3.8'
+
+# Services
+services:
+
+  # Nginx Service
+  nginx:
+    image: nginx:1.19
+    ports:
+      - 80:80
+      - 8000:8000
+    volumes:
+      - ./src/backend:/var/www/php:ro
+      - ./src/frontend:/var/www/react:ro
+      - ./.docker/nginx/conf.d:/etc/nginx/conf.d:ro
+    depends_on:
+      - php
+      # - react
+
+  # ReactJS Service
+  react:
+    build: 
+      context: ./src/frontend
+      dockerfile: ../../.docker/react/Dockerfile
+    working_dir: /var/www/react
+    volumes: 
+      - ./src/frontend:/var/www/react
+    stdin_open: true
+
+
+  # PHP Service
+  php:
+    build: 
+      context: ./src/backend
+      dockerfile: ../../.docker/php/Dockerfile
+    working_dir: /var/www/php
+    volumes:
+      - ./src/backend:/var/www/php
+    depends_on:
+      - mysql
+
+  # MySQL Service
+  mysql:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+    volumes:
+      - ./.docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf:ro
+      - mysqldata:/var/lib/mysql
+
+# RabbitMQ Service
+  rabbitmq:
+      image: rabbitmq:3-management-alpine
+      volumes:
+          - ./.docker/rabbitmq/data/:/var/lib/rabbitmq/
+          - ./.docker/rabbitmq/logs/:/var/log/rabbitmq/
+      environment:
+          RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+          RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+      ports:
+          - 5672:5672
+          - 15672:15672
+        
+# Volumes
+volumes:
+
+  mysqldata:
